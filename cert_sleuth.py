@@ -13,3 +13,17 @@ def fetch_certificates(domain):
         return data if isinstance(data, list) else []
     except (requests.RequestException, ValueError):
         return []
+
+
+def parse_subdomains(raw_json):
+    """Extract unique, cleaned hostnames from crt.sh certificate entries."""
+    subdomains = set()
+
+    for entry in raw_json:
+        name_value = entry.get("name_value", "")
+        for name in name_value.split("\n"):
+            name = name.strip().lower()
+            if name and "*" not in name:
+                subdomains.add(name)
+
+    return sorted(subdomains)
