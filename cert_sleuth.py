@@ -1,3 +1,5 @@
+import argparse
+
 import requests
 
 
@@ -27,3 +29,21 @@ def parse_subdomains(raw_json):
                 subdomains.add(name)
 
     return sorted(subdomains)
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Enumerate subdomains via Certificate Transparency logs (crt.sh)."
+    )
+    parser.add_argument("domain", help="Target domain (e.g. example.com)")
+    args = parser.parse_args()
+
+    raw = fetch_certificates(args.domain)
+    subdomains = parse_subdomains(raw)
+
+    print(f"Found {len(subdomains)} unique subdomains for {args.domain}:\n")
+    for subdomain in subdomains:
+        print(subdomain)
+
+
+if __name__ == "__main__":
+    main()
