@@ -30,6 +30,16 @@ def parse_subdomains(raw_json):
 
     return sorted(subdomains)
 
+
+def filter_subdomains(subdomains, domain):
+    """Keep only hostnames that belong to the target domain."""
+    domain = domain.strip().lower()
+    return sorted(
+        name for name in subdomains
+        if name == domain or name.endswith(f".{domain}")
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Enumerate subdomains via Certificate Transparency logs (crt.sh)."
@@ -38,7 +48,7 @@ def main():
     args = parser.parse_args()
 
     raw = fetch_certificates(args.domain)
-    subdomains = parse_subdomains(raw)
+    subdomains = filter_subdomains(parse_subdomains(raw), args.domain)
 
     print(f"Found {len(subdomains)} unique subdomains for {args.domain}:\n")
     for subdomain in subdomains:
