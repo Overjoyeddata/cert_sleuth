@@ -1,10 +1,14 @@
 import argparse
+import sys
 
 import requests
 
 
 def fetch_certificates(domain):
-    """Query crt.sh for CT log entries matching a domain and its subdomains."""
+    """Query crt.sh for CT log entries matching a domain and its subdomains.
+
+    Returns a tuple of (certificates, error). On success, error is None.
+    """
     url = "https://crt.sh/"
     params = {"q": f"%.{domain}", "output": "json"}
 
@@ -12,9 +16,18 @@ def fetch_certificates(domain):
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
-        return data if isinstance(data, list) else []
-    except (requests.RequestException, ValueError):
-        return []
+        if not isinstance(data, list):
+            return [], "Received unexpected data format from crt.sh."
+        return data, None
+    except requests.Timeout:
+        return [], "Request timed out while contacting crt.sh."
+    except requests.HTTPError as exc:
+        status = exc.response.status_code if exc.response is not None else "unknown"
+        return [], f"crt.sh returned HTTP {status}."
+    except requests.RequestException:
+        return [], "Network error while contacting crt.sh."
+    except ValueError:
+        return [], "Received invalid JSON from crt.sh."
 
 
 def parse_subdomains(raw_json):
@@ -58,16 +71,25 @@ def main():
     )
     args = parser.parse_args()
 
-    raw = fetch_certificates(args.domain)
+    print(f"[*] Querying crt.sh for {args.domain}...", file=sys.stderr)
+
+    raw, error = fetch_certificates(args.domain)
+    if error:
+        print(f"[!] {error}", file=sys.stderr)
+        raise SystemExit(1)
+
     subdomains = filter_subdomains(parse_subdomains(raw), args.domain)
 
-    print(f"Found {len(subdomains)} unique subdomains for {args.domain}:\n")
-    for subdomain in subdomains:
-        print(subdomain)
+    if not subdomains:
+        print(f"[*] No subdomains found for {args.domain}.", file=sys.stderr)
+    else:
+        print(f"Found {len(subdomains)} unique subdomains for {args.domain}:\n")
+        for subdomain in subdomains:
+            print(subdomain)
 
     if args.output:
         save_subdomains(subdomains, args.output)
-        print(f"\nSaved to {args.output}")
+        print(f"[*] Saved to {args.output}", file=sys.stderr)
 
 
 if __name__ == "__main__":
