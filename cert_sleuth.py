@@ -40,11 +40,22 @@ def filter_subdomains(subdomains, domain):
     )
 
 
+def save_subdomains(subdomains, output_path):
+    """Write subdomains to a file, one hostname per line."""
+    with open(output_path, "w", encoding="utf-8") as f:
+        if subdomains:
+            f.write("\n".join(subdomains) + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Enumerate subdomains via Certificate Transparency logs (crt.sh)."
     )
     parser.add_argument("domain", help="Target domain (e.g. example.com)")
+    parser.add_argument(
+        "-o", "--output",
+        help="Save results to a file (one subdomain per line)",
+    )
     args = parser.parse_args()
 
     raw = fetch_certificates(args.domain)
@@ -53,6 +64,10 @@ def main():
     print(f"Found {len(subdomains)} unique subdomains for {args.domain}:\n")
     for subdomain in subdomains:
         print(subdomain)
+
+    if args.output:
+        save_subdomains(subdomains, args.output)
+        print(f"\nSaved to {args.output}")
 
 
 if __name__ == "__main__":
