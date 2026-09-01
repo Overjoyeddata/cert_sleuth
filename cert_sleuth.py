@@ -69,6 +69,11 @@ def main():
         "-o", "--output",
         help="Save results to a file (one subdomain per line)",
     )
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show certificate and hostname counts at each pipeline stage",
+    )
     args = parser.parse_args()
 
     print(f"[*] Querying crt.sh for {args.domain}...", file=sys.stderr)
@@ -78,7 +83,19 @@ def main():
         print(f"[!] {error}", file=sys.stderr)
         raise SystemExit(1)
 
-    subdomains = filter_subdomains(parse_subdomains(raw), args.domain)
+    parsed = parse_subdomains(raw)
+    subdomains = filter_subdomains(parsed, args.domain)
+
+    if args.verbose:
+        print(f"[*] crt.sh returned {len(raw)} certificate entries.", file=sys.stderr)
+        print(
+            f"[*] Extracted {len(parsed)} unique hostnames before domain filtering.",
+            file=sys.stderr,
+        )
+        print(
+            f"[*] {len(subdomains)} hostnames matched {args.domain}.",
+            file=sys.stderr,
+        )
 
     if not subdomains:
         print(f"[*] No subdomains found for {args.domain}.", file=sys.stderr)
