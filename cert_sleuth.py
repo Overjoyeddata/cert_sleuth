@@ -1,7 +1,39 @@
 import argparse
+import re
 import sys
 
 import requests
+
+# Labels: letters/digits/hyphens; no leading/trailing hyphen; at least one dot (e.g. example.com).
+_DOMAIN_RE = re.compile(
+    r"^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$"
+)
+
+
+def validate_domain(domain):
+    """Normalize and validate a domain. Returns (clean_domain, error)."""
+    if domain is None:
+        return None, "Domain is required."
+
+    clean = domain.strip().lower()
+
+    # Strip a trailing dot (FQDN style: example.com.)
+    if clean.endswith("."):
+        clean = clean[:-1]
+
+    if not clean:
+        return None, "Domain cannot be empty."
+
+    if "://" in clean or "/" in clean or " " in clean:
+        return None, "Pass a bare domain (e.g. example.com), not a URL or path."
+
+    if clean.startswith("*."):
+        return None, "Wildcards are not allowed; pass the base domain (e.g. example.com)."
+
+    if not _DOMAIN_RE.match(clean):
+        return None, f"Invalid domain: {domain!r}"
+
+    return clean, None
 
 
 def fetch_certificates(domain):
@@ -76,15 +108,20 @@ def main():
     )
     args = parser.parse_args()
 
-    print(f"[*] Querying crt.sh for {args.domain}...", file=sys.stderr)
+    domain, validation_error = validate_domain(args.domain)
+    if validation_error:
+        print(f"[!] {validation_error}", file=sys.stderr)
+        raise SystemExit(2)
 
-    raw, error = fetch_certificates(args.domain)
+    print(f"[*] Querying crt.sh for {domain}...", file=sys.stderr)
+
+    raw, error = fetch_certificates(domain)
     if error:
         print(f"[!] {error}", file=sys.stderr)
         raise SystemExit(1)
 
     parsed = parse_subdomains(raw)
-    subdomains = filter_subdomains(parsed, args.domain)
+    subdomains = filter_subdomains(parsed, domain)
 
     if args.verbose:
         print(f"[*] crt.sh returned {len(raw)} certificate entries.", file=sys.stderr)
@@ -93,14 +130,14 @@ def main():
             file=sys.stderr,
         )
         print(
-            f"[*] {len(subdomains)} hostnames matched {args.domain}.",
+            f"[*] {len(subdomains)} hostnames matched {domain}.",
             file=sys.stderr,
         )
 
     if not subdomains:
-        print(f"[*] No subdomains found for {args.domain}.", file=sys.stderr)
+        print(f"[*] No subdomains found for {domain}.", file=sys.stderr)
     else:
-        print(f"Found {len(subdomains)} unique subdomains for {args.domain}:\n")
+        print(f"Found {len(subdomains)} unique subdomains for {domain}:\n")
         for subdomain in subdomains:
             print(subdomain)
 
