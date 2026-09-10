@@ -4,6 +4,8 @@ import sys
 
 import requests
 
+__version__ = "1.0.0"
+
 # Labels: letters/digits/hyphens; no leading/trailing hyphen; at least one dot (e.g. example.com).
 _DOMAIN_RE = re.compile(
     r"^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))+$"
@@ -95,6 +97,11 @@ def save_subdomains(subdomains, output_path):
 def main():
     parser = argparse.ArgumentParser(
         description="Enumerate subdomains via Certificate Transparency logs (crt.sh)."
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
     )
     parser.add_argument("domain", help="Target domain (e.g. example.com)")
     parser.add_argument(

@@ -51,6 +51,9 @@ python cert_sleuth.py example.com -o results.txt
 # Verbose pipeline stats on stderr
 python cert_sleuth.py example.com -v
 
+# Show version
+python cert_sleuth.py --version
+
 # Combine flags
 python cert_sleuth.py example.com -v -o results.txt
 ```
@@ -68,6 +71,7 @@ python cert_sleuth.py example.com 2>/dev/null | head
 | `domain` | Target domain (required), e.g. `example.com` |
 | `-o`, `--output` | Write results to a file |
 | `-v`, `--verbose` | Show cert/hostname counts at each stage |
+| `--version` | Print version and exit |
 | `-h`, `--help` | Show help |
 
 ### Exit codes
@@ -78,12 +82,21 @@ python cert_sleuth.py example.com 2>/dev/null | head
 | `1` | Network / crt.sh failure |
 | `2` | Invalid domain input |
 
+## Tests
+
+Offline unit tests cover validation, parsing, filtering, and file output (no network):
+
+```bash
+python -m unittest test_cert_sleuth.py -v
+```
+
 ## Project structure
 
 ```
 cert_sleuth/
-├── cert_sleuth.py      # CLI and CT pipeline
-├── requirements.txt    # Python dependencies
+├── cert_sleuth.py         # CLI and CT pipeline
+├── test_cert_sleuth.py    # Offline unit tests
+├── requirements.txt       # Python dependencies
 └── README.md
 ```
 
